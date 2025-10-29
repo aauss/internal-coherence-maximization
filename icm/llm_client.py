@@ -2,8 +2,22 @@ import os
 
 import openai
 from dotenv import load_dotenv
+from openai import AsyncOpenAI
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 load_dotenv()
+
+_async_client = None
+
+
+def get_async_client():
+    global _async_client
+    if _async_client is None:
+        _async_client = AsyncOpenAI(
+            api_key=os.getenv("HYPERBOLIC_API_KEY"),
+            base_url="https://api.hyperbolic.xyz/v1",
+        )
+    return _async_client
 
 
 def inference_instruct_model(prompt: str) -> str:
@@ -17,6 +31,24 @@ def inference_instruct_model(prompt: str) -> str:
         messages=[
             {"role": "system", "content": "Answer with only True or False."},
             {"role": "user", "content": prompt},
+        ],
+        max_tokens=1,
+    )
+
+    return chat_completion.choices[0].message.content
+
+
+def inference_instruct_model_with_messages(messages: list[dict]) -> str:
+    client = openai.OpenAI(
+        api_key=os.getenv("HYPERBOLIC_API_KEY"),
+        base_url="https://api.hyperbolic.xyz/v1",
+    )
+
+    chat_completion = client.chat.completions.create(
+        model="meta-llama/Meta-Llama-3.1-405B-Instruct",
+        messages=[
+            {"role": "system", "content": "Answer with only True or False."},
+            *messages,
         ],
         max_tokens=1,
     )
@@ -41,13 +73,15 @@ def inference_base_model(prompt: str, temperature: float = 0) -> dict[str, float
     return completion.choices[0].logprobs.top_logprobs[0]
 
 
-def log_props_base_model(prompt: str, temperature: float = 0) -> dict[str, float]:
-    client = openai.OpenAI(
-        api_key=os.getenv("HYPERBOLIC_API_KEY"),
-        base_url="https://api.hyperbolic.xyz/v1",
-    )
+@retry(
+    reraise=True,
+    stop=stop_after_attempt(100),
+    wait=wait_exponential(multiplier=1, min=1, max=100),
+)
+async def log_props_base_model(prompt: str, temperature: float = 0) -> dict[str, float]:
+    client = get_async_client()
 
-    completion = client.completions.create(
+    completion = await client.completions.create(
         model="meta-llama/Meta-Llama-3.1-405B",
         prompt=prompt,
         max_tokens=0,

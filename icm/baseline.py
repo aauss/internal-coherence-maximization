@@ -3,10 +3,13 @@ from pathlib import Path
 import pandas as pd
 from tqdm import tqdm
 
-from .build_prompt import zero_shot_antrophic, zero_shot_chat
+from .build_prompt import few_shot_chat, zero_shot_antrophic, zero_shot_chat
 from .dataloader import load_data
-from .llm_client import inference_base_model, inference_instruct_model
-
+from .llm_client import (
+    inference_base_model,
+    inference_instruct_model,
+    inference_instruct_model_with_messages,
+)
 
 DATA_DIR = Path(__file__).parent.parent / "data"
 
@@ -49,7 +52,18 @@ def zero_shot_instruct_model(df: pd.DataFrame) -> None:
     df.to_csv(DATA_DIR / "zero_shot_instruct_model.csv")
 
 
+def few_shot_instruct_model(df: pd.DataFrame, train_df: pd.DataFrame) -> None:
+    responses = []
+    for question, choice in tqdm(zip(df["question"], df["choice"]), total=len(df)):
+        messages = few_shot_chat(question, choice, train_df)
+        response = inference_instruct_model_with_messages(messages)
+        responses.append(response)
+    df["response"] = responses
+    df.to_csv(DATA_DIR / "few_shot_instruct_model.csv")
+
+
 if __name__ == "__main__":
-    _, test_split = load_data()
-    zero_shot_base_model(test_split)
+    train_split, test_split = load_data()
+    # zero_shot_base_model(test_split)
     # zero_shot_instruct_model(test_split)
+    few_shot_instruct_model(test_split, train_split)
