@@ -4,7 +4,16 @@
 
 This repo reimplements parts of the paper [Unsupervised Elicitation of Language Models](https://arxiv.org/pdf/2506.10139v1).
 
-Specifically, it focuses on a subset of the TruthfulQA data only, and only implements algorithm 1 of the paper and leaves out the consisteency fix. More information can be found in the paper.
+Specifically, it focuses on a subset of the TruthfulQA data, and only implements algorithm 1, i.e., the Internal Coherence Maximization algorithm (ICM) method of the paper, and leaves out the consistency fix. More information can be found in the paper.
+
+## Results
+
+Figure 1 shows ICM's performance compared to three baselines using Llama-3.1-405B. [Details](#baseline) on the baselines are described further down.
+
+<figure>
+  <img src="./data/results.png" alt="Results of Llama-3.1-405B on a subset of the TruthfulQA dataset">
+  <figcaption>Figure 1: Results of Llama-3.1-405B on a subset of the TruthfulQA dataset. ICM is compared with optimised zero-shot prompting of the base model, and to the instruction tuned model (chat) using zero-shot and few-shot prompting.</figcaption>
+</figure>
 
 ## Installation
 
@@ -20,7 +29,7 @@ to install all dependencies. If you don't have `uv`, you can also run
 pip install .
 ```
 
-This repo requires access to [Hyperbolic AI](https://www.hyperbolic.ai), which offers API access to Llama-3.1-405B. Save your API key into a .env file like that
+This repo requires access to [Hyperbolic AI](https://www.hyperbolic.ai), which offers API access to Llama-3.1-405B. Save your API key into a .env file like this
 
 ```bash
 echo "HYPERBOLIC_API_KEY=<your_api_key_here>" > .env
@@ -34,7 +43,7 @@ This repo contains a sample of the TruthfulQA dataset, and a relevant prompt und
 
 ### Main algorithm
 
-The main script, which runs algorithm 1 of the paper, can be executed by running.
+The main script, which runs algorithm 1 of the paper, can be executed by running
 
 ```bash
 uv run python -m icm.main
@@ -42,7 +51,7 @@ uv run python -m icm.main
 
 ### Baseline
 
-For comparison, I also run three baseline experiments. (1) is a zero-shot experiment using the Llama-3.1-405B base model with an [Anthropic *super* prompt](/data/antrophic_prompt.txt). (2) is a zero-shot experiment using the instruction tuned Llama-3.1-405B model. (3) uses few shot examples form the train split as input for the instruction tuned Llama-3.1-405B for comparison.
+For comparison, I also run three baseline experiments. (1) is a zero-shot experiment using the Llama-3.1-405B base model with an [Anthropic *super* prompt](/data/antrophic_prompt.txt). (2) is a zero-shot experiment using the instruction tuned Llama-3.1-405B model. (3) uses few shot examples from the train split as input for the instruction tuned Llama-3.1-405B for comparison.
 
 You can run the baseline experiments by executing
 
@@ -52,11 +61,11 @@ uv run python -m icm.baseline
 
 ### Other modules
 
-- `dataloder.py` is a helper to load the TruthfulQA dataset.
+- `dataloader.py` is a helper to load the TruthfulQA dataset.
 - `build_prompt.py` implements functions to create the prompts as described in the paper.
 - `llm_client.py` wraps API calls to Llama-3.1-405B.
 - `plotting.ipynb` loads and plots the results.
 
 ## Possible improvements
 
-Caching could speed up my experiments and save money as the context for the mutual predictability hardly varies per step. I also did not run finetuning experiments. Since Hyperbolic AI offers renting GPUs, I could have finetuned models on the training set as described in the paper. Lastly, Figure 1 shows error bars indicating they ran their experiments three times. Due to time reasons I did not do that.
+Caching could speed up my experiments and save money as the context for the mutual predictability hardly varies per step. I also did not run finetuning experiments. Hyperbolic AI offers renting GPUs, so theoretically, I could have finetuned models on the training set as described in the paper. Lastly, Figure 1 of the original paper shows error bars because they ran their experiments three times. Due to time constraints I did not do that.
